@@ -1,0 +1,18 @@
+# 运行时产物
+state/
+log/
+export/
+__pycache__/
+*.pyc
+
+# 凭据（绝对不要提交）
+secrets.json
+*.bak
+*.nopassbak
+*.head.bak
+
+# 凭据模板（真文件 secrets.json 已被忽略）
+!secrets.example.json
+
+# 凭据目录
+.credentials/

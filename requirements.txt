@@ -1,0 +1,8 @@
+# nopass 零第三方依赖，全部使用 Python 标准库。
+# 需要运行环境：
+#   python3 >= 3.8
+#   curl（probe.py 的兜底探测使用，可选）
+#   docker（容器扫描使用）
+#   iptables / pct / ssh（视 public_sources 与 PUSH 方式而定，可选）
+#
+# 列在此处仅为明确「无需要 pip install 的包」：

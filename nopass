@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""nopass 命令行
+
+  nopass status              查看所有服务状态
+  nopass scan                立即扫描一次
+  nopass ports               查看当前认定的对外端口及来源
+  nopass revert <service>    撤销某个服务的免密（调适配器 revert）
+  nopass revert-all          撤销全部已适配服务
+  nopass enable <service>    立即对某服务执行免密
+  nopass log [-n N]          查看变更日志
+  nopass sources             列出可用来源及其结果
+"""
+import json, os, subprocess, sys
+
+BASE = "/opt/nopass"
+CFG = os.path.join(BASE, "config.json")
+STATE = os.path.join(BASE, "state", "scan.json")
+ADAPTERS = os.path.join(BASE, "adapters")
+sys.path.insert(0, BASE)
+
+
+def jl(p, d=None):
+    try:
+        return json.load(open(p))
+    except Exception:
+        return d if d is not None else {}
+
+
+def cmd_status():
+    st = jl(STATE)
+    if not st:
+        print("  (还没有扫描记录，先跑 nopass scan)")
+        return
+    print("  %-24s %-6s %-15s %s" % ("服务", "端口", "状态", "说明"))
+    print("  " + "-" * 78)
+    for k, v in sorted(st.items()):
+        print("  %-24s %-6s %-15s %s" % (k, v.get("port", ""), v.get("status", ""),
+                                         v.get("result") or v.get("adapter") or ""))
+
+
+def cmd_ports():
+    from sources import collect
+    r = collect()
+    print("  对外端口: %s" % (r["ports"] or "无"))
+    print("  生效来源: %s" % (r["sources"] or "无"))
+    for d in r["detail"]:
+        print("    %-6s <- %-14s %s" % (d["port"], d["src"], d.get("to_ip") or ""))
+
+
+def cmd_sources():
+    import sources
+    for name in ("gateway_file", "uci", "iptables", "static"):
+        fn = sources.SOURCES.get(name)
+        try:
+            r = fn() if fn else None
+        except Exception as e:
+            r = {"err": str(e)}
+        if r:
+            print("  %-14s -> %s" % (name, r.get("ports")))
+        else:
+            print("  %-14s -> (不可用)" % name)
+
+
+def run_adapter(name, action):
+    cfg = jl(CFG)
+    info = (cfg.get("known") or {}).get(name) or {}
+    ad = info.get("adapter")
+    if not ad:
+        for pat, a in (cfg.get("image_rules") or {}).items():
+            if pat and pat in str(info.get("image", "")):
+                ad = a
+                break
+    if not ad:
+        print("  %s 没有配置适配器" % name)
+        return 1
+    p = os.path.join(ADAPTERS, ad + ".py")
+    if not os.path.exists(p):
+        print("  适配器文件不存在: %s" % p)
+        return 1
+    cmd = [sys.executable, p, name] + ([action] if action != "inject" else [])
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+    out = (r.stdout or r.stderr or "").strip().splitlines()
+    print("  %s -> %s" % (name, out[-1] if out else "done"))
+    return r.returncode
+
+
+def cmd_revert(name):
+    return run_adapter(name, "revert")
+
+
+def cmd_revert_all():
+    st = jl(STATE)
+    n = 0
+    for k, v in st.items():
+        if v.get("status") == "adapted":
+            run_adapter(k, "revert")
+            n += 1
+    print("  已撤销 %d 个" % n)
+
+
+def cmd_enable(name):
+    return run_adapter(name, "inject")
+
+
+def cmd_log(n=30):
+    p = os.path.join(BASE, "log", "scan.log")
+    try:
+        lines = open(p, encoding="utf-8", errors="ignore").read().splitlines()
+        for l in lines[-int(n):]:
+            print("  " + l)
+    except Exception:
+        print("  无日志")
+
+
+def cmd_scan():
+    r = subprocess.run([sys.executable, os.path.join(BASE, "scan.py")])
+    return r.returncode
+
+
+def main():
+    a = sys.argv[1:] or ["status"]
+    c = a[0]
+    if c == "status":
+        cmd_status()
+    elif c == "scan":
+        return cmd_scan()
+    elif c == "ports":
+        cmd_ports()
+    elif c == "sources":
+        cmd_sources()
+    elif c == "revert" and len(a) > 1:
+        return cmd_revert(a[1])
+    elif c == "revert-all":
+        return cmd_revert_all()
+    elif c == "enable" and len(a) > 1:
+        return cmd_enable(a[1])
+    elif c == "log":
+        cmd_log(a[2] if len(a) > 2 else 30)
+    else:
+        print(__doc__)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

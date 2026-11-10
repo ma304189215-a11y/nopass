@@ -1,0 +1,23 @@
+{
+  "_comment": "公共配置。凭据放 secrets.json，不随仓库提交。",
+  "public_sources": ["gateway_file", "uci", "iptables", "static"],
+  "gateway_ports_file": "/opt/nopass/state/gateway-ports.json",
+  "public_ports": [],
+  "auto_probe": false,
+  "probe_proxy": "",
+  "probe_hostname": "",
+  "qinglong_token_file": "/opt/ql/.ql_nopass_token",
+  "known": {
+    "qinglong": { "adapter": "qinglong", "port": 5700 },
+    "openlist": { "adapter": "openlist", "port": 5244 },
+    "qbittorrent": { "adapter": "qbittorrent", "port": 8080 },
+    "prompt-optimizer": { "adapter": "nginx_basic", "port": 8090 },
+    "workbuddy-manager": { "adapter": "workbuddy_manager", "port": 7864 }
+  },
+  "image_rules": {
+    "whyour/qinglong": "qinglong",
+    "linuxserver/qbittorrent": "qbittorrent",
+    "linshen/prompt-optimizer": "nginx_basic",
+    "openlistteam/openlist": "openlist"
+  }
+}
