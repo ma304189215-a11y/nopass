@@ -1,6 +1,12 @@
 # nopass —— 内网服务自动免密（可移植）
 
-> 完整部署与排查见 **[USAGE.md](USAGE.md)**
+<!-- series-nav -->
+> **自建服务器小工具集** · **nopass**（内网服务免密） · [ipv6-push](https://github.com/ma304189215-a11y/ipv6-push)（IPv6 变化推送） · [wifipay](https://github.com/ma304189215-a11y/wifipay)（付费 WiFi 认证）
+>
+> 都在自己家里跑了一段时间、确实在用的东西。零第三方依赖，装完就能用。
+<!-- series-nav -->
+
+完整部署与排查见 **[USAGE.md](USAGE.md)**。
 
 对「**没有对外开放**」的 Web 服务自动免密；端口一旦对外开放，自动撤销免密并恢复登录页。
 判定依据是**网关/主路由的端口转发规则**，不依赖任何代理。
